@@ -78,7 +78,7 @@ def update_ids(ids, id_assoc):
                 ids[i][ind] = id_assoc[i][j][0]
     return ids
 
-def fix_batches(ins_ids, features, coordinates, coordinates_T):
+def fix_batches(ins_ids, features, coordinates):
     new_feats = []
     new_coors = []
     new_coors_T = []
@@ -87,10 +87,8 @@ def fix_batches(ins_ids, features, coordinates, coordinates_T):
         if len(ins_ids[i]) == 0:
             new_feats.append([])
             new_coors.append([])
-            new_coors_T.append([])
         else:
             new_feats.append(features[c])
             new_coors.append(coordinates[c])
-            new_coors_T.append(coordinates_T[c])
             c += 1
-    return new_feats, new_coors, new_coors_T
+    return new_feats, new_coors

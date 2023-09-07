@@ -1,10 +1,11 @@
 import numpy as np
-import spconv
+# import spconv
+import spconv.pytorch as spconv
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from pytorch_lightning.core.lightning import LightningModule
+from lightning.pytorch import LightningModule
 import cont_assoc.models.blocks as blocks
 import cont_assoc.utils.predict as pred
 import cont_assoc.utils.testing as testing
@@ -133,7 +134,7 @@ class CylinderDecoder(nn.Module):
 
         upsampled_feat = self.decompBlock(up3)
 
-        upsampled_feat.features = torch.cat((upsampled_feat.features, up3.features), 1)
+        upsampled_feat = upsampled_feat.replace_feature(torch.cat((upsampled_feat.features, up3.features), 1))
 
         return upsampled_feat, upsampled_feat
 
@@ -177,11 +178,11 @@ class CylinderInstanceHead(nn.Module):
 
     def forward(self, fea, x):
         out = self.conv1(fea)
-        out.features = self.act1(self.bn1(out.features))
+        out = out.replace_feature(self.act1(self.bn1(out.features)))
         out = self.conv2(out)
-        out.features = self.act2(self.bn2(out.features))
+        out = out.replace_feature(self.act2(self.bn2(out.features)))
         out = self.conv3(out)
-        out.features = self.act3(self.bn3(out.features))
+        out = out.replace_feature(self.act3(self.bn3(out.features)))
 
         grid_ind = x['grid']
         xyz = x['pt_cart_xyz']

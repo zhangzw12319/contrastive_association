@@ -3,9 +3,9 @@ EXPERIMENT:
 
 DATA_CONFIG:
     DATASET_NAME: KittiInstanceFeatures
-    DATASET_PATH: ../cont_assoc/data/2instance_features
-    VAL_PRED_PATH: ../cont_assoc/data/2validation_predictions
-    CONFIG_FILE: ../cont_assoc/datasets/semantic-kitti.yaml
+    DATASET_PATH: ./data/instance_features
+    VAL_PRED_PATH: ./data/validation_predictions
+    CONFIG_FILE: ./cont_assoc/datasets/semantic-kitti.yaml
     DATALOADER:
         AUGMENTATION:
             DO_AUG: True

@@ -4,10 +4,10 @@ import cont_assoc.models.contrastive_models as models
 from easydict import EasyDict as edict
 import os
 from os.path import join
-from pytorch_lightning import Trainer
-from pytorch_lightning import loggers as pl_loggers
-from pytorch_lightning.callbacks import LearningRateMonitor, ModelCheckpoint
-import subprocess
+from lightning.pytorch.trainer import Trainer
+from lightning.pytorch.loggers import TensorBoardLogger
+from lightning.pytorch.callbacks import LearningRateMonitor, ModelCheckpoint
+
 import torch
 import yaml
 
@@ -28,6 +28,8 @@ def getDir(obj):
               default=None,
               required=False)
 def main(config, seq, weights):
+    torch.set_float32_matmul_precision("high")
+    torch.multiprocessing.set_sharing_strategy('file_system')
     cfg = edict(yaml.safe_load(open(config)))
 
     if seq is not None:
@@ -41,7 +43,7 @@ def main(config, seq, weights):
         pretrain = torch.load(weights, map_location='cpu')
         model.load_state_dict(pretrain['state_dict'],strict=True)
 
-    tb_logger = pl_loggers.TensorBoardLogger('experiments/'+cfg.EXPERIMENT.ID,
+    tb_logger = TensorBoardLogger('experiments/'+cfg.EXPERIMENT.ID,
                                              default_hp_metric=False)
 
     #Callbacks
@@ -51,7 +53,7 @@ def main(config, seq, weights):
                                  mode='max',
                                  save_last=True)
 
-    trainer = Trainer(gpus=cfg.TRAIN.N_GPUS,
+    trainer = Trainer(devices=cfg.TRAIN.N_GPUS,
                       logger=tb_logger,
                       max_epochs= cfg.TRAIN.MAX_EPOCH,
                       log_every_n_steps=10,

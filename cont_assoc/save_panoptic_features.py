@@ -8,6 +8,8 @@ from pytorch_lightning import Trainer
 import torch
 import yaml
 
+from utils.convert_ckpt import traverse_state_dict
+
 def getDir(obj):
     return os.path.dirname(os.path.abspath(obj))
 
@@ -28,6 +30,7 @@ def main(config, ckpt, save_val_pred):
 
     ckpt_path = join(getDir(__file__), ckpt)
     checkpoint = torch.load(ckpt_path, map_location='cpu')
+    checkpoint = traverse_state_dict(checkpoint)
 
     model = models.PanopticCylinder(cfg)
     model.load_state_dict(checkpoint['state_dict'])

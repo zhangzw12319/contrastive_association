@@ -1,10 +1,11 @@
 import numpy as np
-import spconv
+# import spconv
+import spconv.pytorch as spconv
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from pytorch_lightning.core.lightning import LightningModule
+from lightning.pytorch import LightningModule
 import cont_assoc.models.blocks as blocks
 import cont_assoc.models.panoptic_models as p_models
 import cont_assoc.models.contrastive_models as c_models

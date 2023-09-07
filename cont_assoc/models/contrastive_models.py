@@ -4,7 +4,8 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim.lr_scheduler as schedul
-from pytorch_lightning.core.lightning import LightningModule
+# from pytorch_lightning.core.lightning import LightningModule
+import lightning.pytorch as pl
 import cont_assoc.models.blocks as blocks
 import cont_assoc.utils.contrastive as cont
 from cont_assoc.utils.assoc_module import AssociationModule
@@ -12,7 +13,7 @@ from cont_assoc.utils.evaluate_4dpanoptic import PanopticKitti4DEvaluator
 import cont_assoc.utils.tracking as t
 from cont_assoc.models.loss_contrastive import SupConLoss, AssociationLoss
 
-class ContrastiveTracking(LightningModule):
+class ContrastiveTracking(pl.LightningModule):
     def __init__(self, cfg):
         super().__init__()
         self.cfg = cfg
@@ -59,7 +60,7 @@ class ContrastiveTracking(LightningModule):
 
     def forward(self, x):
         coors = x['pt_coors']
-        sparse = self.sparse_tensor(coors, x['pt_features'])
+        sparse = self.sparse_tensor(coors, x['pt_features']) # 双卡推理时有bug
         ins_features = self.encoder(sparse)
         return ins_features
 
@@ -110,7 +111,7 @@ class ContrastiveTracking(LightningModule):
 
         return
 
-    def validation_epoch_end(self, outputs):
+    def on_validation_epoch_end(self):
         self.evaluator4D.calculate_metrics()
         AQ = self.evaluator4D.get_mean_aq()
         self.log('AQ',AQ)

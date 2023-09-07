@@ -5,8 +5,8 @@ EXPERIMENT:
 ##Datasets
 DATA_CONFIG:
     DATASET_NAME: SemanticKitti
-    DATASET_PATH: ../cont_assoc/data/kitti/
-    CONFIG_FILE: ../cont_assoc/datasets/semantic-kitti.yaml
+    DATASET_PATH: ./data/kitti/dataset
+    CONFIG_FILE: ./cont_assoc/datasets/semantic-kitti.yaml
     NCLASS: 20
     DATALOADER:
         VOXEL_TYPE: Spherical

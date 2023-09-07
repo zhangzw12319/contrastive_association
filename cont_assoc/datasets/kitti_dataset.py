@@ -6,10 +6,12 @@ import time
 import numba as nb
 import yaml
 import pickle
-from pytorch_lightning import LightningDataModule
+from lightning.pytorch.core import LightningDataModule
 from torch.utils.data import DataLoader, Dataset, Sampler, random_split
 from tqdm import tqdm
 from scipy import stats as s
+from utils.path_utils import getDir
+from os.path import join
 
 class SemanticKittiModule(LightningDataModule):
     def __init__(self, cfg, verbose=True):
@@ -112,7 +114,7 @@ class SemanticKittiModule(LightningDataModule):
 
 class SemanticKitti(Dataset):
     def __init__(self, data_path, split='train', seq=None):
-        with open("datasets/semantic-kitti.yaml", 'r') as stream:
+        with open(join(getDir(__file__), "semantic-kitti.yaml"), 'r') as stream:
             semkittiyaml = yaml.safe_load(stream)
         SemKITTI_label_name = dict()
         for i in sorted(list(semkittiyaml['learning_map'].keys()))[::-1]:
@@ -211,7 +213,7 @@ class CylindricalSemanticKitti(Dataset):
         intervals = crop_range/(cur_grid_size-1) # (size-1) could directly get index starting from 0, very convenient
 
         if (intervals==0).any(): print("Zero interval!")
-        grid_ind = (np.floor((np.clip(xyz_pol,min_bound,max_bound)-min_bound)/intervals)).astype(np.int) # point-wise grid index
+        grid_ind = (np.floor((np.clip(xyz_pol,min_bound,max_bound)-min_bound)/intervals)).astype(np.int32) # point-wise grid index
 
         # process voxel position
         voxel_position = np.zeros(self.grid_size,dtype = np.float32)
@@ -227,7 +229,7 @@ class CylindricalSemanticKitti(Dataset):
         label_voxel_pair = np.concatenate([grid_ind,labels],axis = 1)
         label_voxel_pair = label_voxel_pair[np.lexsort((grid_ind[:,2],grid_ind[:,1],grid_ind[:,0])),:] #same order as coordinates to create sparse tensor when using np.unique
 
-        voxel_labels = nb_get_voxel_labels(np.copy(voxel_labels),label_voxel_pair) #get valid voxel labels
+        voxel_labels = nb_get_voxel_labels(np.copy(voxel_labels), label_voxel_pair) #get valid voxel labels
         voxel_labels = voxel_labels.reshape(1,voxel_labels.shape[0]) #add batch dimension
 
         data_tuple = (voxel_position,voxel_labels)
@@ -280,7 +282,7 @@ def nb_aggregate_pointwise_center_offset(offsets, xyz, ins_labels, center_type):
         offsets[i_indices] = mean_xyz - xyz_i
     return offsets
 
-@nb.jit('u1[:](u1[:],i8[:,:])',nopython=True,cache=True,parallel = False)
+@nb.jit('u1[:](u1[:],i4[:,:])',nopython=True,cache=True,parallel = False)
 def nb_get_voxel_labels(voxel_labels,sorted_label_voxel_pair):
     label_size = 256
     counter = np.zeros((label_size,),dtype = np.uint16)

@@ -2,7 +2,7 @@ import os
 import numpy as np
 import torch
 import yaml
-from pytorch_lightning import LightningDataModule
+from lightning.pytorch.core import LightningDataModule
 from torch.utils.data import DataLoader, Dataset, Sampler, random_split
 import cont_assoc.utils.pcd_augmentations as aug
 import cont_assoc.utils.tracking as tr
@@ -108,7 +108,7 @@ class InstanceFeatures(Dataset):
         self.data_path = data_path
         self.aug = augmentations
         self.random_pos_scans = r_pos_scans
-        with open("datasets/semantic-kitti.yaml", 'r') as stream:
+        with open("cont_assoc/datasets/semantic-kitti.yaml", 'r') as stream:
             semkittiyaml = yaml.safe_load(stream)
         SemKITTI_label_name = dict()
         for i in sorted(list(semkittiyaml['learning_map'].keys()))[::-1]:
@@ -138,7 +138,7 @@ class InstanceFeatures(Dataset):
     def __getitem__(self, index):
         ids = []
         sem_labels = np.array([])
-        pos_labels = np.array([],dtype=np.int)
+        pos_labels = np.array([],dtype=np.int32)
         n_pts = []
         pos_enc = []
         pt_coors = []

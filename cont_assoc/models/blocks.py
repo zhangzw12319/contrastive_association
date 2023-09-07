@@ -1,7 +1,7 @@
 import MinkowskiEngine as ME
 import time
-import numpy as np
-import spconv
+# import numpy as np
+import spconv.pytorch as spconv
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -129,7 +129,7 @@ class VoxelFeatureExtractor(nn.Module):
 class ResBlock(nn.Module):
     def __init__(self, in_filters, out_filters, kernel_size=(3, 3, 3), stride=1, indice_key=None):
         super().__init__()
-        self.conv_A1 = conv3x1(in_filters, out_filters, indice_key=indice_key+"bef")
+        self.conv_A1 = conv3x1(in_filters, out_filters, indice_key=indice_key+"bef2")
         self.act_A1 = nn.LeakyReLU()
         self.bn_A1 = nn.BatchNorm1d(out_filters)
 
@@ -141,28 +141,28 @@ class ResBlock(nn.Module):
         self.act_B1 = nn.LeakyReLU()
         self.bn_B1 = nn.BatchNorm1d(out_filters)
 
-        self.conv_B2 = conv3x1(out_filters, out_filters, indice_key=indice_key+"bef")
+        self.conv_B2 = conv3x1(out_filters, out_filters, indice_key=indice_key+"bef2")
         self.act_B2 = nn.LeakyReLU()
         self.bn_B2 = nn.BatchNorm1d(out_filters)
 
     def forward(self, x):
         res_B = self.conv_B1(x)
-        res_B.features = self.act_B1(res_B.features)
-        res_B.features = self.bn_B1(res_B.features)
+        res_B = res_B.replace_feature(self.act_B1(res_B.features))
+        res_B = res_B.replace_feature(self.bn_B1(res_B.features))
 
         res_B = self.conv_B2(res_B)
-        res_B.features = self.act_B2(res_B.features)
-        res_B.features = self.bn_B2(res_B.features)
+        res_B = res_B.replace_feature(self.act_B2(res_B.features))
+        res_B = res_B.replace_feature(self.bn_B2(res_B.features))
 
         res_A = self.conv_A1(x)
-        res_A.features = self.act_A1(res_A.features)
-        res_A.features = self.bn_A1(res_A.features)
+        res_A = res_A.replace_feature(self.act_A1(res_A.features))
+        res_A = res_A.replace_feature(self.bn_A1(res_A.features))
 
         res_A = self.conv_A2(res_A)
-        res_A.features = self.act_A2(res_A.features)
-        res_A.features = self.bn_A2(res_A.features)
+        res_A = res_A.replace_feature(self.act_A2(res_A.features))
+        res_A = res_A.replace_feature(self.bn_A2(res_A.features))
 
-        res_B.features = res_B.features + res_A.features
+        res_B = res_B.replace_feature(res_B.features + res_A.features)
 
         return res_B
 
@@ -172,7 +172,7 @@ class DownResBlock(nn.Module):
         super().__init__()
         self.is_dropout = is_dropout
 
-        self.conv_A1 = conv3x1(in_filters, out_filters, indice_key=indice_key+"bef")
+        self.conv_A1 = conv3x1(in_filters, out_filters, indice_key=indice_key+"bef2")
         self.act_A1 = nn.LeakyReLU()
         self.bn_A1 = nn.BatchNorm1d(out_filters)
 
@@ -184,7 +184,7 @@ class DownResBlock(nn.Module):
         self.act_B1 = nn.LeakyReLU()
         self.bn_B1 = nn.BatchNorm1d(out_filters)
 
-        self.conv_B2 = conv3x1(out_filters, out_filters, indice_key=indice_key+"bef")
+        self.conv_B2 = conv3x1(out_filters, out_filters, indice_key=indice_key+"bef2")
         self.act_B2 = nn.LeakyReLU()
         self.bn_B2 = nn.BatchNorm1d(out_filters)
 
@@ -199,22 +199,22 @@ class DownResBlock(nn.Module):
 
     def forward(self, x):
         res_A = self.conv_A1(x)
-        res_A.features = self.act_A1(res_A.features)
-        res_A.features = self.bn_A1(res_A.features)
+        res_A = res_A.replace_feature(self.act_A1(res_A.features))
+        res_A = res_A.replace_feature(self.bn_A1(res_A.features))
 
         res_A = self.conv_A2(res_A)
-        res_A.features = self.act_A2(res_A.features)
-        res_A.features = self.bn_A2(res_A.features)
+        res_A = res_A.replace_feature(self.act_A2(res_A.features))
+        res_A = res_A.replace_feature(self.bn_A2(res_A.features))
 
         res_B = self.conv_B1(x)
-        res_B.features = self.act_B1(res_B.features)
-        res_B.features = self.bn_B1(res_B.features)
+        res_B = res_B.replace_feature(self.act_B1(res_B.features))
+        res_B = res_B.replace_feature(self.bn_B1(res_B.features))
 
         res_B = self.conv_B2(res_B)
-        res_B.features = self.act_B2(res_B.features)
-        res_B.features = self.bn_B2(res_B.features)
+        res_B = res_B.replace_feature(self.act_B2(res_B.features))
+        res_B = res_B.replace_feature(self.bn_B2(res_B.features))
 
-        res_B.features = res_B.features + res_A.features
+        res_B = res_B.replace_feature(res_B.features + res_A.features)
 
         # if self.is_dropout:
         #     downSampled = self.dropout(B.features)
@@ -244,11 +244,11 @@ class UpBlock(nn.Module):
         self.act2 = nn.LeakyReLU()
         self.bn2 = nn.BatchNorm1d(out_filters)
 
-        self.conv3 = conv3x1(out_filters, out_filters,  indice_key=indice_key)
+        self.conv3 = conv3x1(out_filters, out_filters,  indice_key=indice_key+"2")
         self.act3 = nn.LeakyReLU()
         self.bn3 = nn.BatchNorm1d(out_filters)
 
-        self.conv4 = conv3x3(out_filters, out_filters, indice_key=indice_key)
+        self.conv4 = conv3x3(out_filters, out_filters, indice_key=indice_key+"3")
         self.act4 = nn.LeakyReLU()
         self.bn4 = nn.BatchNorm1d(out_filters)
 
@@ -257,8 +257,8 @@ class UpBlock(nn.Module):
     def forward(self, x, skip):
 
         up = self.conv1(x)
-        up.features = self.act1(up.features)
-        up.features = self.bn1(up.features)
+        up = up.replace_feature(self.act1(up.features))
+        up = up.replace_feature(self.bn1(up.features))
 
         ## upsample
         up = self.upsample(up)
@@ -266,21 +266,21 @@ class UpBlock(nn.Module):
 
         # if self.is_dropout:
         #     up = self.dropout1(up)
-        up.features = up.features + skip.features
+        up = up.replace_feature(up.features + skip.features)
         # if self.is_dropout:
         #     up = self.dropout2(up)
 
         up = self.conv2(up)
-        up.features = self.act2(up.features)
-        up.features = self.bn2(up.features)
+        up = up.replace_feature(self.act2(up.features))
+        up = up.replace_feature(self.bn2(up.features))
 
         up = self.conv3(up)
-        up.features = self.act3(up.features)
-        up.features = self.bn3(up.features)
+        up = up.replace_feature(self.act3(up.features))
+        up = up.replace_feature(self.bn3(up.features))
 
         up = self.conv4(up)
-        up.features = self.act4(up.features)
-        up.features = self.bn4(up.features)
+        up = up.replace_feature(self.act4(up.features))
+        up = up.replace_feature(self.bn4(up.features))
 
         # if self.drop_out:
         #     up = self.dropout3(up)
@@ -291,36 +291,35 @@ class UpBlock(nn.Module):
 class DimDecBlock(nn.Module):
     def __init__(self, in_filters, out_filters, kernel_size=(3, 3, 3), stride=1, indice_key=None):
         super().__init__()
-        self.conv1 = conv3x1x1(in_filters, out_filters, indice_key=indice_key+"bef")
+        self.conv1 = conv3x1x1(in_filters, out_filters, indice_key=indice_key+"bef1")
         self.bn1 = nn.BatchNorm1d(out_filters)
         self.act1 = nn.Sigmoid()
 
-        self.conv2 = conv1x3x1(in_filters, out_filters, indice_key=indice_key+"bef")
+        self.conv2 = conv1x3x1(in_filters, out_filters, indice_key=indice_key+"bef2")
         self.bn2 = nn.BatchNorm1d(out_filters)
         self.act2 = nn.Sigmoid()
 
-        self.conv3 = conv1x1x3(in_filters, out_filters, indice_key=indice_key+"bef")
+        self.conv3 = conv1x1x3(in_filters, out_filters, indice_key=indice_key+"bef3")
         self.bn3 = nn.BatchNorm1d(out_filters)
         self.act3 = nn.Sigmoid()
 
     def forward(self, x):
         out1 = self.conv1(x)
-        out1.features = self.bn1(out1.features)
-        out1.features = self.act1(out1.features)
+        out1 = out1.replace_feature(self.bn1(out1.features))
+        out1 = out1.replace_feature(self.act1(out1.features))
 
 
         out2 = self.conv2(x)
-        out2.features = self.bn2(out2.features)
-        out2.features = self.act2(out2.features)
-
+        out2 = out2.replace_feature(self.bn2(out2.features))
+        out2 = out2.replace_feature(self.act2(out2.features))
 
         out3 = self.conv3(x)
-        out3.features = self.bn3(out3.features)
-        out3.features = self.act3(out3.features)
+        out3 = out3.replace_feature(self.bn3(out3.features))
+        out3 = out3.replace_feature(self.act3(out3.features))
 
-        out1.features = out1.features + out2.features + out3.features
+        out1 = out1.replace_feature(out1.features + out2.features + out3.features)
 
-        out1.features = out1.features * x.features
+        out1 = out1.replace_feature(out1.features * x.features)
 
         return out1
 

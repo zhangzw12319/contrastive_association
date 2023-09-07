@@ -4,13 +4,12 @@ import cont_assoc.models.ps4d_models as models
 from easydict import EasyDict as edict
 import os
 from os.path import join
-from pytorch_lightning import Trainer
+from lightning.pytorch.trainer import Trainer
+from utils.convert_ckpt import traverse_state_dict
+from utils.path_utils import getDir
 import subprocess
 import torch
 import yaml
-
-def getDir(obj):
-    return os.path.dirname(os.path.abspath(obj))
 
 @click.command()
 @click.option('--test_set', is_flag=True)
@@ -22,6 +21,7 @@ def getDir(obj):
 @click.option('--config_ag', '-tr', type=str,
               default=join(getDir(__file__), '../config/contrastive_instances.yaml'))
 def main(config_ps, config_ag, ckpt_ps, ckpt_ag, save, test_set):
+    # torch.set_float32_matmul_precision("medium")
     ps_cfg = edict(yaml.safe_load(open(config_ps)))
     ag_cfg = edict(yaml.safe_load(open(config_ag)))
 
@@ -32,9 +32,13 @@ def main(config_ps, config_ag, ckpt_ps, ckpt_ag, save, test_set):
     ps_cfg.UPDATE_METRICS = 'True'
 
     ckpt_ps_path = join(getDir(__file__), ckpt_ps)
+    print("getdir", getDir(__file__))
+    # change spconv1.0 --> 2.0
     checkpoint_ps = torch.load(ckpt_ps_path, map_location='cpu')
+    checkpoint_ps = traverse_state_dict(checkpoint_ps) 
     ckpt_ag_path = join(getDir(__file__), ckpt_ag)
     checkpoint_ag = torch.load(ckpt_ag_path, map_location='cpu')
+    checkpoint_ag = traverse_state_dict(checkpoint_ag)
 
     model = models.PS4D(ps_cfg, ag_cfg)
     model.load_state_dicts(checkpoint_ps['state_dict'],checkpoint_ag['state_dict'])
@@ -42,7 +46,7 @@ def main(config_ps, config_ag, ckpt_ps, ckpt_ag, save, test_set):
     data = kitti_dataset.SemanticKittiModule(ps_cfg)
     data.setup()
 
-    trainer = Trainer(gpus=ps_cfg.EVAL.N_GPUS, logger=False)
+    trainer = Trainer(devices=ps_cfg.EVAL.N_GPUS, logger=False)
 
     print("Setup finished, starting evaluation")
 
